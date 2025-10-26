@@ -9,6 +9,8 @@
 # production
 /build
 /dist
+/target
+/java-backend/target
 
 # misc
 .DS_Store
