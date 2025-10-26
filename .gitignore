@@ -11,6 +11,7 @@
 /dist
 /target
 /java-backend/target
+backend/target
 
 # misc
 .DS_Store
