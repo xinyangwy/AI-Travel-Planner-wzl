@@ -52,6 +52,16 @@ class Settings(BaseSettings):
     supabase_service_key: str = ""
     database_url: str = ""
 
+    # 性能配置
+    perf_max_workers: int = 3  # 最大并行工作线程数
+    perf_enable_cache: bool = True  # 是否启用缓存
+    perf_cache_ttl: int = 3600  # 缓存过期时间（秒）
+    perf_agent_timeout: int = 30  # Agent 执行超时时间（秒）
+    perf_llm_timeout: int = 60  # LLM 调用超时时间（秒）
+    perf_max_retries: int = 2  # 最大重试次数
+    perf_retry_delay: float = 1.0  # 重试延迟（秒）
+    perf_verbose_logging: bool = False  # 是否启用详细日志
+
     class Config:
         env_file = ".env"
         case_sensitive = False
