@@ -201,8 +201,6 @@ CC BY-NC-SA 4.0
 
 ## 🙏 致谢
 
-- [HelloAgents](https://github.com/datawhalechina/Hello-Agents) - 智能体教程
-- [HelloAgents框架](https://github.com/jjyaoao/HelloAgents) - 智能体框架
 - [高德地图开放平台](https://lbs.amap.com/) - 地图服务
 - [amap-mcp-server](https://github.com/sugarforever/amap-mcp-server) - 高德地图MCP服务器
 
