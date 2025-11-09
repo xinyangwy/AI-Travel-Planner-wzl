@@ -183,13 +183,32 @@
           </div>
 
           <a-form-item name="free_text_input">
-            <a-textarea
-              v-model:value="formData.free_text_input"
-              placeholder="请输入您的额外要求,例如:想去看升旗、需要无障碍设施、对海鲜过敏等..."
-              :rows="3"
-              size="large"
-              class="custom-textarea"
-            />
+            <div class="textarea-with-voice">
+              <a-textarea
+                v-model:value="formData.free_text_input"
+                placeholder="请输入您的额外要求,例如:想去看升旗、需要无障碍设施、对海鲜过敏等..."
+                :rows="3"
+                size="large"
+                class="custom-textarea"
+              />
+              <div class="voice-button-container">
+                <a-button
+                  :type="isRecording ? 'primary' : 'default'"
+                  :danger="isRecording"
+                  :icon="isRecording ? undefined : undefined"
+                  @click="toggleVoiceInput"
+                  class="voice-button"
+                  size="large"
+                >
+                  <span class="voice-icon">{{ isRecording ? '⏹️' : '🎤' }}</span>
+                  <span>{{ isRecording ? '停止录音' : '语音输入' }}</span>
+                </a-button>
+                <div v-if="isRecording" class="recording-indicator">
+                  <span class="recording-dot"></span>
+                  <span class="recording-text">录音中...</span>
+                </div>
+              </div>
+            </div>
           </a-form-item>
         </div>
 
@@ -241,6 +260,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { generateTripPlan, getTripHistory, getTripPlanById } from '@/services/api'
 import { useAuth } from '@/composables/useAuth'
+import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
 import type { TripFormData } from '@/types'
 import type { Dayjs } from 'dayjs'
 
@@ -252,6 +272,7 @@ interface TripFormDataWithDayjs extends Omit<TripFormData, 'start_date' | 'end_d
 
 const router = useRouter()
 const { user } = useAuth()
+const { isRecording, recognizedText, startBrowserRecognition } = useSpeechRecognition()
 const loading = ref(false)
 const loadingProgress = ref(0)
 const loadingStatus = ref('')
@@ -314,6 +335,32 @@ const formatDate = (dateString: string) => {
     minute: '2-digit'
   })
 }
+
+// 语音输入切换
+const toggleVoiceInput = async () => {
+  if (isRecording.value) {
+    // 如果正在录音，这里不需要做什么，因为浏览器API会自动停止
+    return
+  }
+  
+  try {
+    await startBrowserRecognition()
+  } catch (error) {
+    console.error('语音输入失败:', error)
+  }
+}
+
+// 监听识别结果，自动填充到输入框
+watch(recognizedText, (newText) => {
+  if (newText) {
+    // 如果已有内容，追加；否则直接设置
+    if (formData.free_text_input) {
+      formData.free_text_input += ' ' + newText
+    } else {
+      formData.free_text_input = newText
+    }
+  }
+})
 
 // 监听用户状态变化，加载历史记录
 let lastUserId: string | null = null
@@ -698,6 +745,90 @@ const handleSubmit = async () => {
 .custom-textarea :deep(.ant-input:focus) {
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 语音输入容器 */
+.textarea-with-voice {
+  position: relative;
+}
+
+.voice-button-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.voice-button {
+  border-radius: 20px;
+  padding: 0 24px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 2px solid #e8e8e8;
+}
+
+.voice-button:hover {
+  border-color: #667eea;
+  color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.voice-button.ant-btn-primary {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+  border-color: #ff6b6b;
+}
+
+.voice-button.ant-btn-primary:hover {
+  background: linear-gradient(135deg, #ff5252 0%, #e04856 100%);
+  border-color: #ff5252;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.voice-icon {
+  font-size: 18px;
+  display: inline-block;
+}
+
+/* 录音指示器 */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 107, 107, 0.1);
+  border-radius: 20px;
+  border: 2px solid #ff6b6b;
+}
+
+.recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff6b6b;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.2);
+  }
+}
+
+.recording-text {
+  color: #ff6b6b;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 /* 提交按钮 */
