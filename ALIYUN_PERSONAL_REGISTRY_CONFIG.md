@@ -28,7 +28,7 @@ env:
 ```yaml
 env:
   REGISTRY: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
-  NAMESPACE: ai-travel-planner  # 或你在阿里云创建的命名空间名称
+  NAMESPACE: ai-travel-planner-wzl  # 必须与阿里云控制台中的命名空间完全一致
 ```
 
 ### 2. 配置 GitHub Secrets
@@ -57,23 +57,27 @@ Value: [你的固定密码]
 #### 3.1 创建命名空间
 1. 点击左侧 "命名空间"
 2. 点击 "创建命名空间"
-3. 输入名称：`ai-travel-planner`
+3. 输入名称：`ai-travel-planner-wzl`
 4. 点击确定
+
+✅ **你已经创建了命名空间：`ai-travel-planner-wzl`**
 
 #### 3.2 创建镜像仓库
 创建两个仓库：
 
 **后端仓库：**
-- 命名空间：`ai-travel-planner`
+- 命名空间：`ai-travel-planner-wzl`
 - 仓库名称：`backend`
 - 仓库类型：私有
 - 摘要：AI Travel Planner Backend Service
 
 **前端仓库：**
-- 命名空间：`ai-travel-planner`
+- 命名空间：`ai-travel-planner-wzl`
 - 仓库名称：`frontend`
 - 仓库类型：私有
 - 摘要：AI Travel Planner Frontend Service
+
+✅ **你已经创建了这两个仓库**
 
 ### 4. 本地测试登录
 
@@ -120,8 +124,8 @@ on:
 env:
   # 阿里云个人版镜像仓库地址
   REGISTRY: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
-  # 命名空间
-  NAMESPACE: ai-travel-planner
+  # 命名空间（必须与阿里云控制台中的命名空间完全一致）
+  NAMESPACE: ai-travel-planner-wzl
   # 镜像名称
   BACKEND_IMAGE: backend
   FRONTEND_IMAGE: frontend

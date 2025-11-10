@@ -14,8 +14,8 @@ on:
 env:
   # 阿里云个人版镜像仓库地址
   REGISTRY: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
-  # 命名空间
-  NAMESPACE: ai-travel-planner
+  # 命名空间（必须与阿里云控制台中的命名空间名称完全一致）
+  NAMESPACE: ai-travel-planner-wzl
   # 镜像名称
   BACKEND_IMAGE: backend
   FRONTEND_IMAGE: frontend
