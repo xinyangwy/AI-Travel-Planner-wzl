@@ -9,7 +9,53 @@ Error: Error response from daemon: login attempt to https://registry.cn-hangzhou
 
 **原因**: 未配置 GitHub Secrets 中的阿里云镜像仓库访问凭证。
 
-## ✅ 解决方案
+---
+
+## 🚀 快速配置（个人版实例）
+
+如果你使用的是阿里云个人版容器镜像服务，按以下步骤快速配置：
+
+### 你的实例信息
+根据你提供的凭证：
+- **Registry 地址**: `crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com`
+- **用户名**: `开发者信仰`
+- **密码**: 你设置的固定密码
+
+### 快速配置步骤
+
+1. **更新 GitHub Actions 工作流配置**
+   
+   编辑 `.github/workflows/docker-build-push.yml`，修改 `env` 部分：
+   ```yaml
+   env:
+     # 使用个人版实例地址
+     REGISTRY: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
+     # 你的命名空间（在阿里云控制台创建）
+     NAMESPACE: your-namespace
+     BACKEND_IMAGE: backend
+     FRONTEND_IMAGE: frontend
+   ```
+
+2. **添加 GitHub Secrets**
+   
+   在 GitHub 仓库设置中添加：
+   - `ALIYUN_REGISTRY_USERNAME`: `开发者信仰`
+   - `ALIYUN_REGISTRY_PASSWORD`: 你的固定密码
+
+3. **在阿里云创建命名空间和仓库**
+   
+   登录阿里云容器镜像服务控制台，创建：
+   - 命名空间（如：`ai-travel-planner`）
+   - 镜像仓库：`backend` 和 `frontend`
+
+4. **测试本地登录**
+   ```bash
+   docker login --username=开发者信仰 crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
+   ```
+
+---
+
+## ✅ 解决方案（详细步骤）
 
 ### 步骤 1: 获取阿里云容器镜像服务凭证
 
@@ -44,6 +90,8 @@ Error: Error response from daemon: login attempt to https://registry.cn-hangzhou
 
 #### 1.4 获取访问凭证
 
+##### 方式一：企业版实例（推荐）
+
 1. 点击右上角头像
 2. 选择 "访问凭证"
 3. 如果没有设置过，点击 "设置Registry登录密码"
@@ -53,6 +101,23 @@ Error: Error response from daemon: login attempt to https://registry.cn-hangzhou
 - **用户名**: 通常是你的阿里云账号全名（邮箱或手机号）
 - **密码**: 刚才设置的 Registry 登录密码
 - **Registry地址**: `registry.cn-hangzhou.aliyuncs.com` (根据你选择的区域)
+
+##### 方式二：个人版实例
+
+1. 进入容器镜像服务控制台
+2. 选择 "个人实例" 或 "企业版实例"
+3. 点击 "访问凭证" 或 "仓库管理"
+4. 设置固定密码（没有时效限制）
+
+**个人版实例示例:**
+- **用户名**: 你的阿里云账号显示名称（如：`开发者信仰`）
+- **密码**: 设置的固定密码
+- **Registry地址**: `crpi-xxxxx.cn-shanghai.personal.cr.aliyuncs.com` (个人实例专有域名)
+
+⚠️ **注意**: 
+- 使用 RAM 用户（子账号）登录时，不支持企业别名带有英文半角句号（.）
+- 个人版实例有专有的访问域名，格式为 `crpi-{实例ID}.{地域}.personal.cr.aliyuncs.com`
+- 固定密码没有时效限制，请妥善保管
 
 ### 步骤 2: 配置 GitHub Secrets
 
@@ -114,12 +179,29 @@ Secret: 你的 Registry 登录密码
 
 在本地测试阿里云镜像仓库登录：
 
+#### 企业版/公共实例登录：
 ```bash
 # 登录测试
 docker login --username=your-username registry.cn-hangzhou.aliyuncs.com
 
 # 输入密码后，如果看到 "Login Succeeded" 说明凭证正确
 ```
+
+#### 个人版实例登录：
+```bash
+# 使用个人实例专有域名登录
+docker login --username=开发者信仰 crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
+
+# 或者使用 sudo（Linux/Mac）
+sudo docker login --username=开发者信仰 crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
+
+# 输入固定密码后，如果看到 "Login Succeeded" 说明凭证正确
+```
+
+⚠️ **重要提示**:
+- 个人版实例的域名格式：`crpi-{实例ID}.{地域}.personal.cr.aliyuncs.com`
+- 用户名使用阿里云显示名称，不是邮箱或手机号
+- 密码使用设置的固定密码
 
 ## 🔍 常见问题
 
@@ -141,9 +223,12 @@ docker login --username=your-username registry.cn-hangzhou.aliyuncs.com
 **原因**: 
 - 命名空间或仓库名称不匹配
 - 仓库未创建
+- Registry 地址类型不匹配（企业版 vs 个人版）
 
 **解决方案**:
 1. 检查 `.github/workflows/docker-build-push.yml` 中的配置：
+   
+   **企业版/公共实例配置：**
    ```yaml
    env:
      REGISTRY: registry.cn-hangzhou.aliyuncs.com
@@ -151,7 +236,18 @@ docker login --username=your-username registry.cn-hangzhou.aliyuncs.com
      BACKEND_IMAGE: backend
      FRONTEND_IMAGE: frontend
    ```
+   
+   **个人版实例配置：**
+   ```yaml
+   env:
+     REGISTRY: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com
+     NAMESPACE: your-namespace
+     BACKEND_IMAGE: backend
+     FRONTEND_IMAGE: frontend
+   ```
+
 2. 确保阿里云上的命名空间和仓库名称与配置一致
+3. 确认使用的是正确的 Registry 地址类型
 
 ### Q3: 构建超时
 
