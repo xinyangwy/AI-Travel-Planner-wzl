@@ -232,24 +232,25 @@ class MultiAgentTripPlanner:
             traceback.print_exc()
             raise
     
-    def plan_trip(self, request: TripRequest) -> TripPlan:
+    def plan_trip(self, request: TripRequest, stream_id: str = None) -> TripPlan:
         """
         使用多智能体协作生成旅行计划（优化版：并行执行）
 
         Args:
             request: 旅行请求
+            stream_id: 日志流ID（可选）
 
         Returns:
             旅行计划
         """
         try:
-            print(f"\n{'='*60}")
-            print(f"🚀 开始多智能体协作规划旅行...")
-            print(f"目的地: {request.city} | 日期: {request.start_date} 至 {request.end_date} | 天数: {request.travel_days}天")
-            print(f"{'='*60}\n")
+            self._log(stream_id, f"{'='*60}")
+            self._log(stream_id, f"🚀 开始多智能体协作规划旅行...")
+            self._log(stream_id, f"目的地: {request.city} | 日期: {request.start_date} 至 {request.end_date} | 天数: {request.travel_days}天")
+            self._log(stream_id, f"{'='*60}")
 
             # 并行执行步骤1-3: 景点、天气、酒店查询
-            print("⚡ 并行查询景点、天气、酒店信息...")
+            self._log(stream_id, "⚡ 并行查询景点、天气、酒店信息...")
 
             with ThreadPoolExecutor(
                 max_workers=self.settings.perf_max_workers
@@ -258,59 +259,209 @@ class MultiAgentTripPlanner:
                 attraction_query = self._build_attraction_query(request)
                 
                 # 并行执行（使用缓存优化）
-                attraction_future = executor.submit(self.attraction_agent.run, attraction_query)
-                weather_future = executor.submit(self._get_weather_cached, request.city)
-                hotel_future = executor.submit(self._get_hotels_cached, request.city, request.accommodation)
+                self._log(stream_id, f"🔍 开始搜索{request.city}的景点...")
+                attraction_future = executor.submit(self._search_attractions_with_log, request, stream_id)
+                weather_future = executor.submit(self._get_weather_cached, request.city, stream_id)
+                hotel_future = executor.submit(self._get_hotels_cached, request.city, request.accommodation, stream_id)
                 
                 # 获取结果
                 attraction_response = attraction_future.result()
                 weather_response = weather_future.result()
                 hotel_response = hotel_future.result()
             
-            print("✅ 信息查询完成\n")
+            self._log(stream_id, "✅ 信息查询完成")
 
             # 步骤4: 行程规划Agent整合信息生成计划
-            print("📋 生成行程计划...")
+            self._log(stream_id, "📋 生成行程计划...")
             planner_query = self._build_planner_query(request, attraction_response, weather_response, hotel_response)
             planner_response = self.planner_agent.run(planner_query)
 
             # 解析最终计划
             trip_plan = self._parse_response(planner_response, request)
 
-            print(f"✅ 旅行计划生成完成!\n")
+            self._log(stream_id, f"✅ 旅行计划生成完成!")
 
             return trip_plan
 
         except Exception as e:
-            print(f"❌ 生成旅行计划失败: {str(e)}")
+            self._log(stream_id, f"❌ 生成旅行计划失败: {str(e)}")
             import traceback
             traceback.print_exc()
             return self._create_fallback_plan(request)
     
-    def _get_weather_cached(self, city: str) -> str:
+    def _search_attractions_with_log(self, request: TripRequest, stream_id: str = None) -> str:
+        """搜索景点并记录详细日志"""
+        attraction_query = self._build_attraction_query(request)
+        self._log(stream_id, f"🔧 使用工具: amap_maps_text_search")
+        self._log(stream_id, f"📍 搜索关键词: {request.preferences[0] if request.preferences else '景点'}")
+        
+        result = self.attraction_agent.run(attraction_query)
+        
+        # 解析并显示景点列表
+        try:
+            import re
+            
+            self._log(stream_id, f"✅ 找到景点信息")
+            
+            # 解析格式化文本中的景点信息
+            # 格式: 1. **西安城市运动公园**
+            #       - 地址：未央路168号(行政中心地铁站B5口旁)
+            
+            # 提取所有景点
+            pattern = r'\d+\.\s*\*\*([^*]+)\*\*\s*-\s*地址[：:]\s*([^\n]+)'
+            matches = re.findall(pattern, result)
+            
+            if matches:
+                # 只显示前5个
+                for i, (name, address) in enumerate(matches[:5]):
+                    name = name.strip()
+                    address = address.strip()
+                    self._log(stream_id, f"  📌 {name}")
+                    if address:
+                        # 限制地址长度
+                        if len(address) > 50:
+                            address = address[:50] + "..."
+                        self._log(stream_id, f"     📍 {address}")
+                
+                total = len(matches)
+                self._log(stream_id, f"✅ 共找到 {total} 个景点")
+            else:
+                self._log(stream_id, f"✅ 景点搜索完成")
+                
+        except Exception as e:
+            self._log(stream_id, f"⚠️ 解析景点信息时出错: {str(e)}")
+        
+        return result
+    
+    def _log(self, stream_id: str, message: str):
+        """发送日志消息"""
+        print(message)  # 仍然打印到控制台
+        
+        if stream_id:
+            from ..utils.log_streamer import get_log_streamer
+            import json
+            log_streamer = get_log_streamer()
+            log_streamer.emit_log(stream_id, json.dumps({
+                "type": "log",
+                "message": message
+            }, ensure_ascii=False))
+    
+    def _get_weather_cached(self, city: str, stream_id: str = None) -> str:
         """获取天气信息（带缓存）"""
         if self._cache and city in self._cache["weather"]:
             if self.settings.perf_verbose_logging:
-                print("  ⚡ 使用缓存的天气信息")
+                self._log(stream_id, "  ⚡ 使用缓存的天气信息")
             return self._cache["weather"][city]
 
+        self._log(stream_id, f"🌤️ 查询{city}的天气信息...")
+        self._log(stream_id, f"🔧 使用工具: amap_maps_weather")
         weather_query = f"请查询{city}的天气信息"
         result = self.weather_agent.run(weather_query)
+        
+        # 解析并显示天气信息
+        try:
+            import re
+            
+            self._log(stream_id, f"✅ 获取到天气数据")
+            
+            # 解析格式化文本中的天气信息
+            # 格式: - **2025年11月10日（星期一）**
+            #       - 白天：多云，气温 0°C，西风 1-3 级
+            #       - 夜间：晴，气温 -8°C，西风 1-3 级
+            
+            lines = result.split('\n')
+            day_count = 0
+            
+            for i, line in enumerate(lines):
+                # 查找日期行
+                date_match = re.search(r'\*\*(\d{4}年\d{1,2}月\d{1,2}日).*?\*\*', line)
+                if date_match and day_count < 3:  # 只显示前3天
+                    date_str = date_match.group(1)
+                    self._log(stream_id, f"  📅 {date_str}")
+                    
+                    # 查找接下来的白天和夜间信息
+                    if i + 1 < len(lines):
+                        day_line = lines[i + 1]
+                        # 提取白天信息: 白天：多云，气温 0°C，西风 1-3 级
+                        day_match = re.search(r'白天[：:]\s*([^，,]+).*?气温\s*(-?\d+)°C.*?([东南西北]+风.*?\d+-?\d*\s*级)', day_line)
+                        if day_match:
+                            weather_desc = day_match.group(1).strip()
+                            temp = day_match.group(2)
+                            wind = day_match.group(3).strip()
+                            self._log(stream_id, f"    ☀️ 白天: {weather_desc} {temp}°C {wind}")
+                    
+                    if i + 2 < len(lines):
+                        night_line = lines[i + 2]
+                        # 提取夜间信息
+                        night_match = re.search(r'夜间[：:]\s*([^，,]+).*?气温\s*(-?\d+)°C.*?([东南西北]+风.*?\d+-?\d*\s*级)', night_line)
+                        if night_match:
+                            weather_desc = night_match.group(1).strip()
+                            temp = night_match.group(2)
+                            wind = night_match.group(3).strip()
+                            self._log(stream_id, f"    🌙 夜间: {weather_desc} {temp}°C {wind}")
+                    
+                    day_count += 1
+            
+            if day_count > 0:
+                self._log(stream_id, f"✅ 已显示 {day_count} 天天气预报")
+                    
+        except Exception as e:
+            self._log(stream_id, f"⚠️ 解析天气信息时出错: {str(e)}")
+        
+        self._log(stream_id, f"✅ 天气信息查询完成")
 
         if self._cache:
             self._cache["weather"][city] = result
         return result
 
-    def _get_hotels_cached(self, city: str, accommodation: str) -> str:
+    def _get_hotels_cached(self, city: str, accommodation: str, stream_id: str = None) -> str:
         """获取酒店信息（带缓存）"""
         cache_key = f"{city}_{accommodation}"
         if self._cache and cache_key in self._cache["hotels"]:
             if self.settings.perf_verbose_logging:
-                print("  ⚡ 使用缓存的酒店信息")
+                self._log(stream_id, "  ⚡ 使用缓存的酒店信息")
             return self._cache["hotels"][cache_key]
 
+        self._log(stream_id, f"🏨 搜索{city}的{accommodation}...")
+        self._log(stream_id, f"🔧 使用工具: amap_maps_text_search")
         hotel_query = f"请搜索{city}的{accommodation}酒店"
         result = self.hotel_agent.run(hotel_query)
+        
+        # 解析并显示酒店列表
+        try:
+            import re
+            
+            self._log(stream_id, f"✅ 找到酒店信息")
+            
+            # 解析格式化文本中的酒店信息
+            # 格式: 1. **金悦酒店**
+            #       - 地址：韦曲街道神禾一路何家营新村南6排西1号
+            
+            # 提取所有酒店
+            pattern = r'\d+\.\s*\*\*([^*]+)\*\*\s*-\s*地址[：:]\s*([^\n]+)'
+            matches = re.findall(pattern, result)
+            
+            if matches:
+                # 只显示前5个
+                for i, (name, address) in enumerate(matches[:5]):
+                    name = name.strip()
+                    address = address.strip()
+                    self._log(stream_id, f"  🏨 {name}")
+                    if address:
+                        # 限制地址长度
+                        if len(address) > 50:
+                            address = address[:50] + "..."
+                        self._log(stream_id, f"     📍 {address}")
+                
+                total = len(matches)
+                self._log(stream_id, f"✅ 共找到 {total} 个酒店")
+            else:
+                self._log(stream_id, f"✅ 酒店搜索完成")
+                
+        except Exception as e:
+            self._log(stream_id, f"⚠️ 解析酒店信息时出错: {str(e)}")
+        
+        self._log(stream_id, f"✅ 酒店信息查询完成")
 
         if self._cache:
             self._cache["hotels"][cache_key] = result

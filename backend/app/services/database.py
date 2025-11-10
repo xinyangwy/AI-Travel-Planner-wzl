@@ -2,10 +2,14 @@
 
 import os
 import json
+import warnings
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from supabase import create_client, Client
 from ..config import get_settings
+
+# 抑制 Supabase 的弃用警告
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="supabase")
 
 settings = get_settings()
 

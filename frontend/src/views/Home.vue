@@ -249,6 +249,11 @@
             </p>
           </div>
         </a-form-item>
+
+        <!-- 实时日志查看器 -->
+        <a-form-item v-if="loading">
+          <LogViewer ref="logViewerRef" />
+        </a-form-item>
       </a-form>
     </a-card>
   </div>
@@ -258,9 +263,10 @@
 import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { generateTripPlan, getTripHistory, getTripPlanById } from '@/services/api'
+import { generateTripPlanWithLogs, getTripHistory, getTripPlanById } from '@/services/api'
 import { useAuth } from '@/composables/useAuth'
 import { useSpeechRecognition } from '@/composables/useSpeechRecognition'
+import LogViewer from '@/components/LogViewer.vue'
 import type { TripFormData } from '@/types'
 import type { Dayjs } from 'dayjs'
 
@@ -278,6 +284,7 @@ const loadingProgress = ref(0)
 const loadingStatus = ref('')
 const historyLoading = ref(false)
 const tripHistory = ref<any[]>([])
+const logViewerRef = ref<InstanceType<typeof LogViewer> | null>(null)
 
 const formData = reactive<TripFormDataWithDayjs>({
   city: '',
@@ -404,6 +411,11 @@ const handleSubmit = async () => {
   loading.value = true
   loadingProgress.value = 0
   loadingStatus.value = '正在初始化...'
+  
+  // 清空日志
+  if (logViewerRef.value) {
+    logViewerRef.value.clearLogs()
+  }
 
   // 模拟进度更新
   const progressInterval = setInterval(() => {
@@ -435,7 +447,12 @@ const handleSubmit = async () => {
       free_text_input: formData.free_text_input
     }
 
-    const response = await generateTripPlan(requestData)
+    // 使用带日志流的API
+    const response = await generateTripPlanWithLogs(requestData, (logMessage) => {
+      if (logViewerRef.value) {
+        logViewerRef.value.addLog(logMessage)
+      }
+    })
 
     clearInterval(progressInterval)
     loadingProgress.value = 100

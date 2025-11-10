@@ -57,6 +57,79 @@ export async function generateTripPlan(formData: TripFormData): Promise<TripPlan
 }
 
 /**
+ * 生成旅行计划（带实时日志流）
+ */
+export async function generateTripPlanWithLogs(
+  formData: TripFormData,
+  onLog: (message: string) => void
+): Promise<TripPlanResponse> {
+  try {
+    // 获取token
+    const { data: { session } } = await supabase.auth.getSession()
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    }
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/trip/plan-stream`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(formData)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+
+    if (!reader) {
+      throw new Error('无法读取响应流')
+    }
+
+    let result: any = null
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value)
+      const lines = chunk.split('\n')
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = JSON.parse(line.slice(6))
+          
+          if (data.type === 'log') {
+            onLog(data.message)
+          } else if (data.type === 'result') {
+            result = data.data
+          } else if (data.type === 'error') {
+            throw new Error(data.message)
+          }
+        }
+      }
+    }
+
+    if (!result) {
+      throw new Error('未收到结果数据')
+    }
+
+    return {
+      success: true,
+      message: '旅行计划生成成功',
+      data: result
+    }
+  } catch (error: any) {
+    console.error('生成旅行计划失败:', error)
+    throw new Error(error.message || '生成旅行计划失败')
+  }
+}
+
+/**
  * 健康检查
  */
 export async function healthCheck(): Promise<any> {
