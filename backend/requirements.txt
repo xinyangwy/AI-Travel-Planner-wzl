@@ -1,6 +1,9 @@
 # HelloAgents框架
 hello-agents[protocols]>=0.2.4
 
+# HelloAgents 依赖（显式添加以确保 Docker 构建成功）
+huggingface_hub>=0.20.0
+
 # FastAPI和相关依赖
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
