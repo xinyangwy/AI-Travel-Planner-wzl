@@ -8,7 +8,7 @@
 
     <div class="login-card">
       <div class="login-header">
-        <span class="icon">✈️</span>
+        <span class="icon">🌍</span>
         <h1>AI旅行规划师</h1>
         <p>{{ isLogin ? '欢迎回来' : '创建新账户' }}</p>
       </div>

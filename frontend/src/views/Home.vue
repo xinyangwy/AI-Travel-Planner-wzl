@@ -10,7 +10,7 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <div class="icon-wrapper">
-        <span class="icon">✈️</span>
+        <span class="icon">🌍</span>
       </div>
       <h1 class="page-title">AI旅行规划师</h1>
       <p class="page-subtitle">基于AI的个性化旅行规划,让每一次出行都完美无忧</p>

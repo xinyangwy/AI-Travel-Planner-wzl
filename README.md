@@ -1,4 +1,4 @@
-# AI旅行规划师 🌍✈️
+# AI旅行规划师 🌍
 
 基于HelloAgents框架构建的智能旅行规划助手,集成高德地图MCP服务,提供个性化的旅行计划生成。
 
@@ -17,6 +17,9 @@
 - 🐳 **Docker支持**: 一键部署,支持Docker Compose和Kubernetes
 - 🔄 **CI/CD自动化**: GitHub Actions自动构建并推送到阿里云镜像仓库
 - 👤 **用户系统**: Supabase认证,支持历史记录保存和查看
+
+旅游规划结果页面：
+![](./images/result.png)
 
 ## 🏗️ 技术栈
 
