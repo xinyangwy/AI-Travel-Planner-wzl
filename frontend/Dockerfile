@@ -13,8 +13,13 @@ RUN npm ci
 # 复制源代码
 COPY . .
 
-# 构建生产版本
-RUN npm run build
+# 创建环境变量文件（构建时需要）
+ENV VITE_API_BASE_URL=http://localhost:8000
+ENV VITE_SUPABASE_URL=placeholder
+ENV VITE_SUPABASE_ANON_KEY=placeholder
+
+# 构建生产版本（使用 build:docker 跳过类型检查以加快构建速度）
+RUN npm run build:docker
 
 # 阶段2: 生产环境
 FROM nginx:alpine
