@@ -234,7 +234,7 @@ class MultiAgentTripPlanner:
     
     def plan_trip(self, request: TripRequest, stream_id: str = None) -> TripPlan:
         """
-        使用多智能体协作生成旅行计划（优化版：并行执行）
+        使用多智能体协作生成旅行计划（优化版：并行执行 + 重试机制）
 
         Args:
             request: 旅行请求
@@ -243,7 +243,12 @@ class MultiAgentTripPlanner:
         Returns:
             旅行计划
         """
-        try:
+        from ..utils.retry_handler import retry_on_rate_limit
+        import time
+        
+        # 包装带重试的执行函数
+        @retry_on_rate_limit(max_retries=3, initial_delay=2.0, backoff_factor=2.0)
+        def execute_with_retry():
             self._log(stream_id, f"{'='*60}")
             self._log(stream_id, f"🚀 开始多智能体协作规划旅行...")
             self._log(stream_id, f"目的地: {request.city} | 日期: {request.start_date} 至 {request.end_date} | 天数: {request.travel_days}天")
@@ -260,9 +265,9 @@ class MultiAgentTripPlanner:
                 
                 # 并行执行（使用缓存优化）
                 self._log(stream_id, f"🔍 开始搜索{request.city}的景点...")
-                attraction_future = executor.submit(self._search_attractions_with_log, request, stream_id)
-                weather_future = executor.submit(self._get_weather_cached, request.city, stream_id)
-                hotel_future = executor.submit(self._get_hotels_cached, request.city, request.accommodation, stream_id)
+                attraction_future = executor.submit(self._search_attractions_with_retry, request, stream_id)
+                weather_future = executor.submit(self._get_weather_with_retry, request.city, stream_id)
+                hotel_future = executor.submit(self._get_hotels_with_retry, request.city, request.accommodation, stream_id)
                 
                 # 获取结果
                 attraction_response = attraction_future.result()
@@ -282,12 +287,50 @@ class MultiAgentTripPlanner:
             self._log(stream_id, f"✅ 旅行计划生成完成!")
 
             return trip_plan
-
+        
+        try:
+            return execute_with_retry()
         except Exception as e:
-            self._log(stream_id, f"❌ 生成旅行计划失败: {str(e)}")
+            error_msg = str(e)
+            if "429" in error_msg or "rate limit" in error_msg.lower():
+                self._log(stream_id, f"❌ API请求限制: 已达到最大重试次数，请稍后再试")
+                self._log(stream_id, f"💡 建议: 等待几分钟后重试，或联系管理员检查API配额")
+            else:
+                self._log(stream_id, f"❌ 生成旅行计划失败: {error_msg}")
+            
             import traceback
             traceback.print_exc()
             return self._create_fallback_plan(request)
+    
+    def _search_attractions_with_retry(self, request: TripRequest, stream_id: str = None) -> str:
+        """搜索景点（带重试）"""
+        from ..utils.retry_handler import retry_on_rate_limit
+        
+        @retry_on_rate_limit(max_retries=2, initial_delay=1.0)
+        def execute():
+            return self._search_attractions_with_log(request, stream_id)
+        
+        return execute()
+    
+    def _get_weather_with_retry(self, city: str, stream_id: str = None) -> str:
+        """获取天气（带重试）"""
+        from ..utils.retry_handler import retry_on_rate_limit
+        
+        @retry_on_rate_limit(max_retries=2, initial_delay=1.0)
+        def execute():
+            return self._get_weather_cached(city, stream_id)
+        
+        return execute()
+    
+    def _get_hotels_with_retry(self, city: str, accommodation: str, stream_id: str = None) -> str:
+        """获取酒店（带重试）"""
+        from ..utils.retry_handler import retry_on_rate_limit
+        
+        @retry_on_rate_limit(max_retries=2, initial_delay=1.0)
+        def execute():
+            return self._get_hotels_cached(city, accommodation, stream_id)
+        
+        return execute()
     
     def _search_attractions_with_log(self, request: TripRequest, stream_id: str = None) -> str:
         """搜索景点并记录详细日志"""
