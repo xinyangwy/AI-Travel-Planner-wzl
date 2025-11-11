@@ -20,6 +20,8 @@
 
 旅游规划结果页面：
 ![](./images/result.png)
+docker运行:
+![](./images/docker-compose.png)
 
 ## 🏗️ 技术栈
 
@@ -100,23 +102,54 @@ AI-Travel-Planner-wzl/
 
 ## 🚀 快速开始
 
-### 方式 1: Docker Desktop 部署（推荐新手）⭐
+### 方式 1: Docker 一键部署（推荐）⭐
 
-**最简单的方式，3分钟启动！**
+**最简单的方式，只需要一个配置文件！**
 
-适合 Windows/Mac 用户，使用 Docker Desktop 图形界面：
+#### 使用预构建镜像（推荐）
 
-📖 **详细教程**: [Docker Desktop 快速开始](QUICK_START_DOCKER_DESKTOP.md)
+1. **获取配置文件**
+   
+   下载 `docker-compose.local.yml` 文件到本地
 
-**快速步骤**:
-1. 安装 Docker Desktop
-2. 创建 `docker-compose.yml` 配置文件
-3. 运行 `docker-compose up -d`
-4. 访问 http://localhost
+2. **启动服务**
+   
+   ```bash
+   docker-compose -f docker-compose.local.yml up -d
+   ```
 
-### 方式 2: Docker Compose 部署（推荐开发者）
+3. **访问应用**
+   - 前端: http://localhost:8080
+   - 后端: http://localhost:8000
+   - API文档: http://localhost:8000/docs
 
-适合命令行用户和生产环境：
+4. **查看日志**
+   
+   ```bash
+   docker-compose -f docker-compose.local.yml logs -f
+   ```
+
+📖 **详细教程**: [Docker 部署指南](DOCKER_DEPLOYMENT_GUIDE.md)
+
+**常用命令**:
+```bash
+# 停止服务
+docker-compose -f docker-compose.local.yml stop
+
+# 重启服务
+docker-compose -f docker-compose.local.yml restart
+
+# 更新镜像
+docker-compose -f docker-compose.local.yml pull
+docker-compose -f docker-compose.local.yml up -d
+
+# 停止并删除容器
+docker-compose -f docker-compose.local.yml down
+```
+
+### 方式 2: 从源码构建部署
+
+适合需要自定义配置的用户：
 
 ```bash
 # 1. 克隆仓库
@@ -124,21 +157,15 @@ git clone https://github.com/xinyangwy/AI-Travel-Planner-wzl.git
 cd AI-Travel-Planner-wzl
 
 # 2. 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，填入你的API密钥
+# 编辑 backend/.env 和 frontend/.env 文件
 
-# 3. 启动服务
-docker-compose up -d
+# 3. 构建并启动
+docker-compose up -d --build
 
 # 4. 访问应用
 # 前端: http://localhost
 # 后端: http://localhost:8000
 ```
-
-📖 **详细说明**: 
-- [Docker Desktop 详细指南](DOCKER_DESKTOP_GUIDE.md) - 图文并茂，适合新手
-- [Docker 快速开始指南](DOCKER_QUICK_START.md) - 命令行方式
-- [Docker 部署指南](DOCKER_DEPLOY_GUIDE.md) - 生产环境部署
 
 ### 方式 3: 本地开发
 
@@ -386,35 +413,44 @@ Agent可以自动调用以下高德地图MCP工具:
 
 ## 🐳 Docker 部署
 
-### 使用 Docker Compose
+### 快速部署（推荐）
+
+使用预构建的镜像，只需一个配置文件：
 
 ```bash
-# 启动服务
-docker-compose up -d
+# 1. 获取 docker-compose.local.yml 文件
 
-# 查看日志
-docker-compose logs -f
+# 2. 启动服务
+docker-compose -f docker-compose.local.yml up -d
 
-# 停止服务
-docker-compose down
+# 3. 查看日志
+docker-compose -f docker-compose.local.yml logs -f
+
+# 4. 访问应用
+# 前端: http://localhost:8080
+# 后端: http://localhost:8000
 ```
 
-### 使用阿里云镜像
+### 镜像信息
 
-```bash
-# 拉取镜像
-docker pull registry.cn-hangzhou.aliyuncs.com/ai-travel-planner/backend:latest
-docker pull registry.cn-hangzhou.aliyuncs.com/ai-travel-planner/frontend:latest
+项目镜像托管在阿里云容器镜像服务：
 
-# 运行容器
-docker run -d -p 8000:8000 --env-file .env \
-  registry.cn-hangzhou.aliyuncs.com/ai-travel-planner/backend:latest
+- **后端镜像**: `crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/backend:main`
+- **前端镜像**: `crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/frontend:main`
 
-docker run -d -p 80:80 \
-  registry.cn-hangzhou.aliyuncs.com/ai-travel-planner/frontend:latest
-```
+### 环境变量配置
 
-详细说明请查看: [Docker 部署指南](docs/DOCKER_DEPLOYMENT.md)
+**重要提示**: 前端环境变量在构建时注入，如需修改需重新构建镜像。
+
+后端环境变量可通过 `docker-compose.local.yml` 配置：
+- `LLM_MODEL_ID`: AI 模型
+- `LLM_API_KEY`: ModelScope API 密钥
+- `AMAP_API_KEY`: 高德地图 API 密钥
+- `SUPABASE_URL`: Supabase 项目地址
+- `SUPABASE_ANON_KEY`: Supabase 匿名密钥
+- `SUPABASE_SERVICE_KEY`: Supabase 服务密钥
+
+详细说明请查看: [Docker 部署指南](DOCKER_DEPLOYMENT_GUIDE.md)
 
 ## 🔄 CI/CD 自动化
 
@@ -430,11 +466,16 @@ docker run -d -p 80:80 \
 
 ## 📚 文档
 
-- [实时日志使用说明](docs/REALTIME_LOGS_USAGE.md)
-- [实时日志架构设计](docs/REALTIME_LOGS_ARCHITECTURE.md)
-- [Docker 部署指南](docs/DOCKER_DEPLOYMENT.md)
-- [Docker 快速开始](DOCKER_QUICK_START.md)
-- [Supabase 配置指南](SETUP_SUPABASE.md)
+### 部署相关
+- [Docker 部署指南](DOCKER_DEPLOYMENT_GUIDE.md) - 使用 Docker 快速部署（推荐）
+- [Docker Desktop 快速开始](QUICK_START_DOCKER_DESKTOP.md) - 图形界面部署教程
+
+### 功能文档
+- [实时日志使用说明](docs/REALTIME_LOGS_USAGE.md) - SSE 实时日志功能
+- [实时日志架构设计](docs/REALTIME_LOGS_ARCHITECTURE.md) - 技术架构说明
+
+### 配置指南
+- [Supabase 配置指南](SETUP_SUPABASE.md) - 用户认证和数据库配置
 
 ## 🎯 功能演示
 
