@@ -100,9 +100,23 @@ AI-Travel-Planner-wzl/
 
 ## 🚀 快速开始
 
-### 方式 1: Docker 部署（推荐）
+### 方式 1: Docker Desktop 部署（推荐新手）⭐
 
-最快的部署方式，适合生产环境：
+**最简单的方式，3分钟启动！**
+
+适合 Windows/Mac 用户，使用 Docker Desktop 图形界面：
+
+📖 **详细教程**: [Docker Desktop 快速开始](QUICK_START_DOCKER_DESKTOP.md)
+
+**快速步骤**:
+1. 安装 Docker Desktop
+2. 创建 `docker-compose.yml` 配置文件
+3. 运行 `docker-compose up -d`
+4. 访问 http://localhost
+
+### 方式 2: Docker Compose 部署（推荐开发者）
+
+适合命令行用户和生产环境：
 
 ```bash
 # 1. 克隆仓库
@@ -121,9 +135,12 @@ docker-compose up -d
 # 后端: http://localhost:8000
 ```
 
-详细说明请查看: [Docker 快速开始指南](DOCKER_QUICK_START.md)
+📖 **详细说明**: 
+- [Docker Desktop 详细指南](DOCKER_DESKTOP_GUIDE.md) - 图文并茂，适合新手
+- [Docker 快速开始指南](DOCKER_QUICK_START.md) - 命令行方式
+- [Docker 部署指南](DOCKER_DEPLOY_GUIDE.md) - 生产环境部署
 
-### 方式 2: 本地开发
+### 方式 3: 本地开发
 
 适合开发和调试：
 

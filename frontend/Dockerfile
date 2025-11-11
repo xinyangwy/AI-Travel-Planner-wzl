@@ -15,8 +15,8 @@ COPY . .
 
 # 创建环境变量文件（构建时需要）
 ENV VITE_API_BASE_URL=http://localhost:8000
-ENV VITE_SUPABASE_URL=placeholder
-ENV VITE_SUPABASE_ANON_KEY=placeholder
+ENV VITE_SUPABASE_URL=https://jhelshvdndysdijiucxu.supabase.co
+ENV VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWxzaHZkbmR5c2RpamlpdWN4dSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQwMDU2NjMxLCJleHAiOjIwNTU2MzI2MzF9.3J8D9a6D8GfJzK5nG4XzQ7bH9L0pK1mN2o3rQ4sT5wU
 
 # 构建生产版本（使用 build:docker 跳过类型检查以加快构建速度）
 RUN npm run build:docker

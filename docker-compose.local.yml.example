@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  backend:
+    image: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/backend:main
+    container_name: ai-travel-planner-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # LLM 配置
+      - LLM_MODEL_ID=Qwen/Qwen2.5-72B-Instruct
+      - LLM_API_KEY=your_modelscope_api_key_here  # 替换为你的 ModelScope API Key
+      - LLM_BASE_URL=https://api-inference.modelscope.cn/v1/
+      - LLM_TIMEOUT=180
+      
+      # 高德地图 API（必需）
+      - AMAP_API_KEY=your_amap_api_key_here  # 替换为你的高德地图 API Key
+      
+      # Supabase 配置（可选，如果不需要用户认证可以删除）
+      - SUPABASE_URL=your_supabase_url_here
+      - SUPABASE_ANON_KEY=your_supabase_anon_key_here
+      - SUPABASE_SERVICE_KEY=your_supabase_service_key_here
+      - DATABASE_URL=your_database_url_here
+      
+      # 服务器配置
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost
+      
+      # 性能配置
+      - PERF_MAX_WORKERS=3
+      - PERF_ENABLE_CACHE=true
+      - PERF_VERBOSE_LOGGING=false
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/frontend:main
+    container_name: ai-travel-planner-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  app-network:
+    driver: bridge
+    name: ai-travel-planner-network

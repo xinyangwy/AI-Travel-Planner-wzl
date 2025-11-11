@@ -1,0 +1,175 @@
+# 🔧 快速修复：Supabase URL 错误
+
+## 问题
+
+浏览器控制台显示错误：
+```
+Uncaught Error: Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.
+```
+
+## 原因
+
+前端镜像在构建时使用了无效的 Supabase URL (`placeholder`)，导致 Supabase 客户端初始化失败。
+
+## ✅ 解决方案
+
+### 方案 1: 等待新镜像（推荐）
+
+1. **提交修复到 GitHub**（已完成）
+2. **等待 GitHub Actions 构建**（约 5-10 分钟）
+3. **拉取新镜像并重启**
+
+```bash
+# 停止当前容器
+docker-compose -f docker-compose.local.yml down
+
+# 删除旧镜像
+docker rmi crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/frontend:main
+
+# 等待 GitHub Actions 构建完成后，拉取新镜像
+docker pull crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/frontend:main
+
+# 重新启动
+docker-compose -f docker-compose.local.yml up -d
+```
+
+### 方案 2: 本地重新构建（立即可用）⭐
+
+如果不想等待，可以本地重新构建前端镜像：
+
+```bash
+# 1. 确保在项目根目录
+cd D:\Code\GitHub\AI-Travel-Planner-wzl
+
+# 2. 构建前端镜像
+docker build -t frontend-fixed ./frontend
+
+# 3. 停止当前容器
+docker-compose -f D:\Code\dockerCompose\docker-compose.local.yml down
+
+# 4. 创建临时 docker-compose 文件
+```
+
+创建 `D:\Code\dockerCompose\docker-compose-fixed.yml`：
+
+```yaml
+version: '3.8'
+
+services:
+  backend:
+    image: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/backend:main
+    container_name: ai-travel-planner-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - LLM_MODEL_ID=Qwen/Qwen2.5-72B-Instruct
+      - LLM_API_KEY=ms-73164431-dbd7-4589-95c1-fb30ce434252
+      - LLM_BASE_URL=https://api-inference.modelscope.cn/v1/
+      - LLM_TIMEOUT=180
+      - AMAP_API_KEY=805b20ab31a8f2f13d05c7479909614d
+      - SUPABASE_URL=https://jhelshvdndysdijiucxu.supabase.co
+      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWxzaHZkbmR5c2RpamlpdWN4dSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQwMDU2NjMxLCJleHAiOjIwNTU2MzI2MzF9.3J8D9a6D8GfJzK5nG4XzQ7bH9L0pK1mN2o3rQ4sT5wU
+      - SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWxzaHZkbmR5c2Rpaml1Y3h1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU4ODMyOSwiZXhwIjoyMDc4MTY0MzI5fQ.dkm0S5oBI-C5et8-UreRrT7uZrAQRXDJkPbCJ7EArQI
+      - DATABASE_URL=postgresql://postgres:wzla1891280@db.jhelshvdndysdijiucxu.supabase.co:5432/postgres
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080
+      - PERF_MAX_WORKERS=3
+      - PERF_ENABLE_CACHE=true
+      - PERF_VERBOSE_LOGGING=false
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    image: frontend-fixed  # 使用本地构建的镜像
+    container_name: ai-travel-planner-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  app-network:
+    driver: bridge
+    name: ai-travel-planner-network
+```
+
+然后启动：
+
+```bash
+# 5. 使用新配置启动
+docker-compose -f D:\Code\dockerCompose\docker-compose-fixed.yml up -d
+
+# 6. 查看日志
+docker-compose -f D:\Code\dockerCompose\docker-compose-fixed.yml logs -f
+```
+
+### 方案 3: 临时禁用 Supabase（最快）
+
+如果你不需要用户认证功能，可以修改前端代码临时禁用 Supabase。
+
+但这需要修改源代码，不推荐。
+
+## 📝 完整步骤（方案 2 - 推荐）
+
+```bash
+# 1. 进入项目目录
+cd D:\Code\GitHub\AI-Travel-Planner-wzl
+
+# 2. 拉取最新代码（包含修复）
+git pull origin main
+
+# 3. 构建前端镜像
+docker build -t frontend-fixed ./frontend
+
+# 4. 停止旧容器
+cd D:\Code\dockerCompose
+docker-compose -f docker-compose.local.yml down
+
+# 5. 修改 docker-compose.local.yml
+# 将 frontend 的 image 改为 frontend-fixed
+
+# 6. 启动
+docker-compose -f docker-compose.local.yml up -d
+
+# 7. 访问
+# 打开浏览器访问 http://localhost:8080
+```
+
+## ✅ 验证修复
+
+1. 打开浏览器访问 http://localhost:8080
+2. 按 F12 打开控制台
+3. 应该不再看到 Supabase URL 错误
+4. 页面应该正常显示
+
+## 🎯 预期结果
+
+修复后，你应该能看到：
+- ✅ 首页正常显示
+- ✅ 可以填写旅行表单
+- ✅ 可以提交请求
+- ✅ 可以查看实时日志
+- ✅ 可以查看结果
+
+---
+
+**推荐**: 使用方案 2（本地重新构建），可以立即解决问题！
