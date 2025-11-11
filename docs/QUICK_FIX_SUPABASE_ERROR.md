@@ -53,63 +53,7 @@ docker-compose -f D:\Code\dockerCompose\docker-compose.local.yml down
 创建 `D:\Code\dockerCompose\docker-compose-fixed.yml`：
 
 ```yaml
-version: '3.8'
 
-services:
-  backend:
-    image: crpi-1trut6hjzy84g1bf.cn-shanghai.personal.cr.aliyuncs.com/ai-travel-planner-wzl/backend:main
-    container_name: ai-travel-planner-backend
-    ports:
-      - "8000:8000"
-    environment:
-      - LLM_MODEL_ID=Qwen/Qwen2.5-72B-Instruct
-      - LLM_API_KEY=ms-73164431-dbd7-4589-95c1-fb30ce434252
-      - LLM_BASE_URL=https://api-inference.modelscope.cn/v1/
-      - LLM_TIMEOUT=180
-      - AMAP_API_KEY=805b20ab31a8f2f13d05c7479909614d
-      - SUPABASE_URL=https://jhelshvdndysdijiucxu.supabase.co
-      - SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWxzaHZkbmR5c2RpamlpdWN4dSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzQwMDU2NjMxLCJleHAiOjIwNTU2MzI2MzF9.3J8D9a6D8GfJzK5nG4XzQ7bH9L0pK1mN2o3rQ4sT5wU
-      - SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWxzaHZkbmR5c2Rpaml1Y3h1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU4ODMyOSwiZXhwIjoyMDc4MTY0MzI5fQ.dkm0S5oBI-C5et8-UreRrT7uZrAQRXDJkPbCJ7EArQI
-      - DATABASE_URL=postgresql://postgres:wzla1891280@db.jhelshvdndysdijiucxu.supabase.co:5432/postgres
-      - HOST=0.0.0.0
-      - PORT=8000
-      - LOG_LEVEL=INFO
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080
-      - PERF_MAX_WORKERS=3
-      - PERF_ENABLE_CACHE=true
-      - PERF_VERBOSE_LOGGING=false
-    restart: unless-stopped
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  frontend:
-    image: frontend-fixed  # 使用本地构建的镜像
-    container_name: ai-travel-planner-frontend
-    ports:
-      - "8080:80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - app-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-networks:
-  app-network:
-    driver: bridge
-    name: ai-travel-planner-network
 ```
 
 然后启动：
