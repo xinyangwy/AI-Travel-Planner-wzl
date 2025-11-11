@@ -110,7 +110,7 @@ AI-Travel-Planner-wzl/
 
 1. **获取配置文件**
    
-   下载 `docker-compose.local.yml` 文件到本地
+   下载 `docker-compose.local.yml` 文件到本地(里面包含已经填充好的key)
 
 2. **启动服务**
    
